@@ -38,8 +38,8 @@ Property | Value |
 ---|---|
 Number of web servers | 4-6 |
 Region | us-east-1 ie. North Virginia
-Number of availability Zones Useed | 2
-Subnet | Private
+Number of Availability Zones Used | 2
+Subnet | 2 Private Subnets
 Instance Type | t2.micro |
 AMI | Ubuntu18 |
 Disk Space | 10GB
