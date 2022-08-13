@@ -33,7 +33,17 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-In this project, I deployed a sample application to to the Apache Web Server running on EC2 instances inside a Private Subnet using the CloudFormation Template ie. Infrastructure as a Code.
+In this project, I deployed a sample application to to the Apache Web Server running on EC2 instances inside a Private Subnet using the CloudFormation Template ie. Infrastructure as a Code. Some of the properties used in this project are as follows :
+Property | Value |
+---|---|
+Number of web servers | 4-6 |
+Region | us-east-1 ie. North Virginia
+Number of availability Zones Useed | 2
+Subnet | Private
+Instance Type | t2.micro |
+AMI | Ubuntu18 |
+Disk Space | 10GB
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -57,6 +67,7 @@ Following is the Architecture Diagram of the Infrastructure that was deployed us
 
 
 <!-- FILES AND FOLDERS -->
+## Files and Folders
 Name | Purpose |
 ---|---|
  /scripts|This folder contains the scripts (windows as well as linux) to Create,Update and Delete the Cloudformation stack|
