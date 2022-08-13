@@ -1,0 +1,150 @@
+Description: >
+    Developer: Shubham Kandwal 
+    This template deploys 2 security groups (one for Servers and other for LoadBalancer), Launch Configuration, 
+    AutoScaling Group (with minimum 4 and and maximum 6 web servers) and a LoadBalancer
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    
+Resources:
+
+  # Security Group for Load Balancer  
+  LBSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to our load balancer
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      
+  # Security Group for the web servers
+  WebServerSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to our hosts and SSH from local only
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
+
+  # Launch Configuration for AutoScaling Group - t2.micro, 10GB Disk, Installs Apache Service, Downloads custom index.html and runs on port 80
+  WebAppLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install apache2 -y
+          systemctl start apache2.service
+          cd /var/www/html
+          wget "https://drive.google.com/u/0/uc?id=1ClFgDNTkaAK4CxV1aC9IGC_K_JjSwim1&export=download" -O index.html
+          sed -i "1i <h2> Server IP - `ec2metadata --local-ipv4` </h2>" /var/www/html/index.html
+      ImageId: ami-005de95e8ff495156
+      #KeyName: key       # Use a key if you want to connect to web server from a Bastion Host/Jump Box
+      SecurityGroups:
+      - Ref: WebServerSecGroup
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sdk"
+        Ebs:
+          VolumeSize: '10'
+
+# AutoScaling Group - It creates 4-6 web servers in a Private Subnet using the LaunchConfiguration
+  WebAppGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+      - Fn::ImportValue: 
+          !Sub "${EnvironmentName}-PRIV-NETS"
+      LaunchConfigurationName:
+        Ref: WebAppLaunchConfig
+      MinSize: '4'
+      MaxSize: '6'
+      TargetGroupARNs:
+      - Ref: WebAppTargetGroup
+  
+# Load Balancer
+  WebAppLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
+      SecurityGroups:
+      - Ref: LBSecGroup
+
+# Listener - listens on port 80 
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: WebAppTargetGroup
+      LoadBalancerArn:
+        Ref: WebAppLB
+      Port: '80'
+      Protocol: HTTP
+
+# Listener Rule - Forwarding the request based on condition
+  ALBListenerRule:
+      Type: AWS::ElasticLoadBalancingV2::ListenerRule
+      Properties:
+        Actions:
+        - Type: forward
+          TargetGroupArn: !Ref 'WebAppTargetGroup'
+        Conditions:
+        - Field: path-pattern
+          Values: [/]
+        ListenerArn: !Ref 'Listener'
+        Priority: 1
+
+# Target Group - All the web servers created by AutoScaling Group are a part of this Target group
+  WebAppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 8
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: 
+        Fn::ImportValue:
+          Fn::Sub: "${EnvironmentName}-VPCID"
+    
+Outputs:
+  LoadBalanerDNSName: 
+    Description: A reference to the Load Balancer
+    Value: !Join [ "", [ "http://", !GetAtt  WebAppLB.DNSName ]]
+    Export:
+      Name: !Sub ${EnvironmentName}-LB
+
