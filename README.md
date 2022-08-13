@@ -93,19 +93,19 @@ Here are the steps needed to successfully finish this project.
 
 
 ### How to run the scripts?
-1. Create Script   
+1. ***Create Script***   
 ```bash
 # Ensure that the AWS CLI is configured before running the command below
 ./create.sh stackName templateFile.yml variableFile.json
 ```
 
-2. Update Script
+2. ***Update Script***
 ```bash
 # Ensure that the AWS CLI is configured before running the command below
 ./update.sh stackName templateFile.yml variableFile.json
 ```   
 
-3. Delete Script
+3. ***Delete Script***
 ```bash
 # Ensure that the AWS CLI is configured before running the command below
 ./delete.sh stackName
@@ -149,7 +149,7 @@ Once network stack is created, we then create the server stack which using some 
 
 Name: Shubham Kandwal  
 Email: shubham.0297@yahoo.in  
-Project Link: [Deploying_Static_Website_On_AWS](https://github.com/shubham0297/Deploying_Static_Website_On_AWS#prerequisites)
+Project Link: [Deploying_Highly_Available_WebApp_Using_CloudFormation](https://github.com/shubham0297/AWS_CloudFormation-Deploying_Highly_Available_WebApp)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
